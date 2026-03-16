@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>AlgaCem — Pond Intelligence Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --g900:#0a2410;--g800:#15391d;--g700:#1a4a24;--g600:#226030;--g500:#2d7a40;
+  --g400:#3d9952;--g300:#55b56a;--g200:#8ed4a0;--g100:#d0eeda;--g50:#f0f8f3;
+  --amber:#d97706;--amber-l:#fef3c7;--red:#dc2626;--red-l:#fee2e2;--blue:#1d4ed8;
+  --text1:#111827;--text2:#374151;--text3:#6b7280;--text4:#9ca3af;
+  --border:#e5e7eb;--border2:#d1d5db;--bg:#f0f4f0;--card:#ffffff;--card2:#f9fbf9;
+  --r:8px;--r2:12px;
+  --sh:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --sh2:0 4px 12px rgba(0,0,0,.10),0 2px 4px rgba(0,0,0,.05);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;background:var(--bg);}
+body{font-family:'Inter',sans-serif;color:var(--text1);display:flex;flex-direction:column;font-size:13px;}
+
+/* TOPBAR */
+.topbar{height:50px;background:var(--g800);display:flex;align-items:center;padding:0 16px;gap:0;flex-shrink:0;}
+.logo-area{display:flex;align-items:center;gap:10px;padding-right:18px;border-right:1px solid var(--g600);}
+.logo-shape{width:32px;height:32px;background:linear-gradient(135deg,var(--g400),var(--g300));border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:#fff;}
+.logo-text .t1{font-weight:700;font-size:15px;color:#fff;letter-spacing:.04em;}
+.logo-text .t2{font-size:9px;color:var(--g200);letter-spacing:.15em;text-transform:uppercase;margin-top:1px;}
+.sys-title{margin-left:16px;font-size:11px;color:var(--g200);letter-spacing:.18em;text-transform:uppercase;font-weight:500;}
+.tickers{margin-left:auto;display:flex;align-items:center;gap:24px;}
+.tick{display:flex;flex-direction:column;align-items:flex-end;}
+.tick-l{font-size:8px;color:var(--g200);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1px;}
+.tick-v{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:#fff;}
+.tick-v.amber{color:#fcd34d;}.tick-v.green{color:#86efac;}
+.live-badge{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 10px;margin-left:8px;}
+.live-dot{width:6px;height:6px;background:#86efac;border-radius:50%;animation:blink 1.4s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 5px #86efac;}50%{opacity:.3;}}
+.live-badge span{font-size:9px;font-weight:600;color:#86efac;letter-spacing:.1em;}
+.clock{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--g200);margin-left:6px;}
+
+/* MAIN TABS */
+.main-tabs{height:44px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:flex-end;padding:0 16px;flex-shrink:0;box-shadow:var(--sh);}
+.mtab{padding:10px 16px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s;letter-spacing:.01em;}
+.mtab:hover{color:var(--text1);}
+.mtab.active{color:var(--g600);border-bottom-color:var(--g600);font-weight:600;}
+
+/* LAYOUT */
+.layout{flex:1;display:flex;overflow:hidden;min-height:0;}
+.lpanel{width:230px;flex-shrink:0;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.cpanel{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;}
+.rpanel{width:280px;flex-shrink:0;background:var(--card);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+
+/* LEFT */
+.lp-title{padding:12px 14px 6px;font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;}
+.pond-list{flex:1;overflow-y:auto;padding:4px 8px;}
+.pond-btn{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:var(--r);cursor:pointer;transition:all .15s;border:1px solid transparent;margin-bottom:2px;}
+.pond-btn:hover{background:var(--g50);border-color:var(--g100);}
+.pond-btn.sel{background:var(--g50);border-color:var(--g200);}
+.pond-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.pond-btn-name{font-weight:600;font-size:12px;color:var(--text1);}
+.pond-btn-detail{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text3);margin-left:auto;}
+.pond-btn-stage{font-size:9px;color:var(--text4);}
+.lp-divider{border:none;border-top:1px solid var(--border);margin:4px 8px;}
+.lp-metrics{padding:8px 12px;border-top:1px solid var(--border);flex-shrink:0;}
+.lp-m-title{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px;}
+.lp-m-row{display:flex;align-items:center;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--g50);}
+.lp-m-lbl{font-size:10px;color:var(--text3);}
+.lp-m-val{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--text1);}
+
+/* TAB CONTENT */
+.tab-content{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0;}
+.tab-content.active{display:flex;}
+
+/* SCROLL */
+.scroll{overflow-y:auto;}
+::-webkit-scrollbar{width:4px;height:4px;}::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:14px 16px;box-shadow:var(--sh);}
+.card-title{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;}
+.card-sub{font-size:10px;color:var(--text4);margin-bottom:10px;}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px 10px 0;}
+.kpi-card{background:var(--g700);border-radius:var(--r2);padding:14px;color:#fff;}
+.kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--g200);margin-bottom:6px;}
+.kpi-val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;color:#fff;line-height:1;}
+.kpi-unit{font-size:10px;color:var(--g200);}
+.kpi-change{font-size:9px;margin-top:5px;}
+.kpi-change.up{color:#86efac;}.kpi-change.dn{color:#fca5a5;}.kpi-change.warn{color:#fcd34d;}
+
+/* STATUS */
+.status-pill{font-size:9px;font-weight:600;padding:3px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:.06em;}
+.status-pill.healthy{background:var(--g100);color:var(--g600);}
+.status-pill.warning{background:var(--amber-l);color:var(--amber);}
+.status-pill.critical{background:var(--red-l);color:var(--red);}
+
+/* MONITOR GRID */
+.pond-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px;overflow-y:auto;flex:1;}
+.pm-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:11px;cursor:pointer;transition:all .18s;position:relative;box-shadow:var(--sh);}
+.pm-card:hover{border-color:var(--g300);box-shadow:var(--sh2);}
+.pm-card.sel{border-color:var(--g400);background:var(--g50);}
+.pm-card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.pm-card-name{font-size:17px;font-weight:700;color:var(--text1);}
+.pm-params{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.pm-param{padding:4px 6px;background:var(--card2);border-radius:5px;}
+.pm-param-lbl{font-size:7px;color:var(--text4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:1px;}
+.pm-param-val{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--text1);}
+.pm-param-unit{font-size:7px;color:var(--text4);}
+.pm-bar{height:2px;border-radius:1px;margin-top:4px;background:var(--border);overflow:hidden;}
+.pm-bar-fill{height:100%;border-radius:1px;transition:width .8s ease;}
+.pm-day-badge{font-size:8px;color:var(--text4);margin-bottom:5px;font-family:'JetBrains Mono',monospace;}
+
+/* MINI 3D POND in monitor */
+.pm-card-3d{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:0;overflow:hidden;cursor:pointer;transition:all .18s;box-shadow:var(--sh);display:flex;flex-direction:column;}
+.pm-card-3d:hover{border-color:var(--g300);}
+.pm-card-3d.sel{border-color:var(--g400);}
+.pm-3d-canvas-wrap{flex:1;min-height:120px;position:relative;}
+.pm-3d-info{padding:8px 10px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.pm-3d-name{font-size:14px;font-weight:700;color:var(--text1);}
+
+/* CO2 */
+.co2-layout{flex:1;display:grid;grid-template-columns:1fr 300px;gap:8px;padding:10px;overflow:hidden;min-height:0;}
+.co2-main{display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
+.co2-side{display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
+.co2-row{display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:border-color .15s;}
+.co2-row:hover{border-color:var(--g300);}
+.co2-row-name{font-weight:700;font-size:13px;width:32px;flex-shrink:0;}
+.co2-row-sdot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.co2-track-wrap{flex:1;}
+.co2-track{height:5px;background:var(--g50);border-radius:3px;overflow:hidden;border:1px solid var(--g100);margin-bottom:2px;}
+.co2-track-fill{height:100%;border-radius:3px;transition:width 1s ease;}
+.co2-track-lbls{display:flex;justify-content:space-between;font-size:8px;color:var(--text4);}
+.co2-chg{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;width:44px;text-align:right;flex-shrink:0;}
+.co2-chg.up{color:var(--g500);}.co2-chg.dn{color:var(--amber);}.co2-chg.st{color:var(--text4);}
+.co2-rec{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text2);width:68px;text-align:right;flex-shrink:0;}
+
+/* HARVEST */
+.pred-layout{flex:1;display:grid;grid-template-columns:1fr 285px;gap:8px;padding:10px;overflow:hidden;min-height:0;}
+.pred-main{display:flex;flex-direction:column;gap:8px;overflow:hidden;min-height:0;}
+.pred-side{display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
+.harv-cal-item{display:flex;align-items:center;gap:9px;padding:7px 9px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);cursor:pointer;transition:border-color .15s;}
+.harv-cal-item:hover{border-color:var(--g300);}
+.urgency-bar{width:3px;border-radius:2px;align-self:stretch;flex-shrink:0;}
+.harv-cal-name{font-weight:600;font-size:12px;color:var(--text1);}
+.harv-cal-win{font-size:9px;color:var(--text3);margin-top:1px;}
+.harv-cal-grade{font-size:9px;padding:1px 5px;border-radius:3px;font-weight:600;}
+
+/* SIM */
+.sim-layout{flex:1;display:grid;grid-template-columns:270px 1fr;gap:0;overflow:hidden;min-height:0;}
+.sim-controls{background:var(--card);border-right:1px solid var(--border);padding:12px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
+.sim-section-hdr{font-size:9px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:.12em;padding-bottom:5px;border-bottom:1px solid var(--border);}
+.ctrl-item{display:flex;flex-direction:column;gap:4px;}
+.ctrl-label-row{display:flex;justify-content:space-between;align-items:baseline;}
+.ctrl-lbl{font-size:11px;font-weight:500;color:var(--text2);}
+.ctrl-val{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--g600);}
+.ctrl-sub{font-size:9px;color:var(--text4);}
+input[type=range]{width:100%;height:4px;accent-color:var(--g500);cursor:pointer;}
+.sim-results{background:var(--bg);display:flex;flex-direction:column;overflow:hidden;}
+.sim-kpi-bar{display:flex;gap:6px;padding:8px 10px;flex-shrink:0;background:var(--card);border-bottom:1px solid var(--border);}
+.sim-kpi-item{flex:1;padding:7px 10px;border-radius:var(--r);text-align:center;border:1px solid transparent;}
+.sim-kpi-lbl{font-size:8px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
+.sim-kpi-val{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;line-height:1;}
+.sim-kpi-sts{font-size:9px;font-weight:500;margin-top:2px;}
+.sim-charts{flex:1;display:grid;grid-template-rows:1fr 1fr;grid-template-columns:1fr 1fr;gap:6px;padding:8px;overflow:hidden;min-height:0;}
+.sim-chart-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:9px;display:flex;flex-direction:column;overflow:hidden;}
+.sim-chart-title{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:1px;}
+.sim-chart-sub{font-size:8px;color:var(--text4);margin-bottom:5px;}
+.sim-chart-wrap{flex:1;position:relative;min-height:0;}
+
+/* CARBON */
+.carbon-layout{flex:1;display:grid;grid-template-columns:1fr 285px;gap:8px;padding:10px;overflow:hidden;min-height:0;}
+.carbon-main{display:flex;flex-direction:column;gap:8px;overflow:hidden;}
+.carbon-side{display:flex;flex-direction:column;gap:8px;overflow-y:auto;}
+
+/* RIGHT PANEL */
+.rp-hdr{padding:12px 14px 8px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.rp-pond-name{font-size:24px;font-weight:700;color:var(--text1);line-height:1;}
+.rp-pond-stage{font-size:10px;color:var(--text3);margin-top:2px;}
+.rp-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.rp-tab{flex:1;padding:7px 4px;text-align:center;font-size:9px;font-family:'Inter',sans-serif;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.rp-tab.active{color:var(--g600);border-bottom-color:var(--g600);font-weight:600;}
+.rp-tab-content{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.rp-tab-content.active{display:flex;}
+
+/* PARAMS */
+.rp-sect{padding:8px 12px;border-bottom:1px solid var(--border);}
+.rp-sect-title{font-size:8px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px;}
+.param-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.param-cell{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:7px 8px;transition:border-color .15s;}
+.param-cell:hover{border-color:var(--g200);}
+.param-lbl{font-size:7px;color:var(--text4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px;}
+.param-val{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--text1);line-height:1;}
+.param-unit{font-size:8px;color:var(--text3);}
+.param-trend{font-size:8px;margin-top:2px;}
+.param-trend.up{color:var(--g500);}.param-trend.dn{color:var(--red);}.param-trend.st{color:var(--text4);}
+.param-bar{height:2px;border-radius:1px;margin-top:3px;overflow:hidden;background:var(--g100);}
+.param-bar-fill{height:100%;border-radius:1px;transition:width .7s ease;}
+
+/* SIGNAL BOX */
+.signal-box{margin:8px 12px;background:var(--g50);border:1px solid var(--g200);border-radius:var(--r);padding:9px 11px;}
+.signal-box.warn{background:var(--amber-l);border-color:#fcd34d;}
+.signal-box.crit{background:var(--red-l);border-color:#fca5a5;}
+.signal-box-title{font-size:9px;font-weight:700;color:var(--g700);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
+.signal-box-title.warn{color:var(--amber);}.signal-box-title.crit{color:var(--red);}
+.signal-box-txt{font-size:10px;color:var(--text2);line-height:1.5;}
+
+/* ALERTS */
+.alert-list{flex:1;overflow-y:auto;}
+.alert-item{display:flex;gap:9px;padding:9px 12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;position:relative;}
+.alert-item:hover{background:var(--g50);}
+.alert-item.critical{border-left:3px solid var(--red);}
+.alert-item.warning{border-left:3px solid var(--amber);}
+.alert-item.info{border-left:3px solid var(--g300);}
+.alert-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:3px;}
+.alert-pond{font-weight:700;font-size:11px;color:var(--text1);}
+.alert-type-badge{font-size:8px;font-weight:600;padding:1px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:.05em;margin-left:5px;}
+.alert-type-badge.critical{background:var(--red-l);color:var(--red);}
+.alert-type-badge.warning{background:var(--amber-l);color:var(--amber);}
+.alert-type-badge.info{background:var(--g100);color:var(--g600);}
+.alert-text{font-size:10px;color:var(--text3);line-height:1.45;margin-top:2px;}
+.alert-time{font-size:8px;color:var(--text4);margin-top:1px;}
+.alert-expand{display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);}
+.alert-expand.open{display:block;}
+.rec-action-list{margin-top:5px;}
+.rec-action-item{display:flex;gap:5px;margin-bottom:3px;font-size:10px;color:var(--text2);}
+.rec-action-item::before{content:"→";color:var(--g500);flex-shrink:0;}
+.rec-cause{font-size:10px;color:var(--text3);margin-bottom:5px;font-style:italic;line-height:1.45;}
+.rec-timeframe{font-size:9px;font-weight:600;margin-top:5px;}
+.rec-timeframe.critical{color:var(--red);}
+.rec-timeframe.warning{color:var(--amber);}
+.rec-timeframe.info,.rec-timeframe.harvest,.rec-timeframe.ok{color:var(--g600);}
+
+/* SECTION CARD */
+.section-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r2);padding:12px 14px;box-shadow:var(--sh);}
+
+/* OVERVIEW */
+#c3d-wrap{flex:1;position:relative;min-height:0;margin:8px 10px 0;border-radius:var(--r2);overflow:hidden;border:1px solid var(--border);}
+#c3d{width:100%;height:100%;display:block;}
+.c3d-badge{position:absolute;top:10px;left:10px;background:rgba(255,255,255,.9);border:1px solid var(--border);border-radius:var(--r);padding:4px 10px;font-size:9px;font-weight:500;color:var(--text2);backdrop-filter:blur(6px);}
+.c3d-hint{position:absolute;bottom:8px;right:10px;font-size:8px;color:var(--text4);background:rgba(255,255,255,.85);padding:2px 8px;border-radius:var(--r);backdrop-filter:blur(4px);}
+.time-overlay{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.93);border:1px solid var(--border);border-radius:var(--r2);padding:7px 14px;backdrop-filter:blur(8px);display:flex;align-items:center;gap:10px;min-width:260px;box-shadow:var(--sh2);}
+.time-lbl{font-size:9px;font-weight:600;color:var(--g700);white-space:nowrap;}
+.time-val{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--g700);min-width:38px;text-align:right;}
+
+/* MONO/UTIL */
+.mono{font-family:'JetBrains Mono',monospace;}
+.bold{font-weight:700;}
+.text-green{color:var(--g500);}
+.text-amber{color:var(--amber);}
+.text-red{color:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo-area">
+    <div class="logo-shape">AC</div>
+    <div class="logo-text"><div class="t1">ALGACEM</div><div class="t2">CIMAR · Safi Site</div></div>
+  </div>
+  <div class="sys-title">Pond Intelligence Dashboard</div>
+  <div class="tickers">
+    <div class="tick"><div class="tick-l">Total Biomass</div><div class="tick-v green" id="t-biomass">—</div></div>
+    <div class="tick"><div class="tick-l">CO₂ Today</div><div class="tick-v green" id="t-co2">—</div></div>
+    <div class="tick"><div class="tick-l">Avg pH</div><div class="tick-v" id="t-ph">—</div></div>
+    <div class="tick"><div class="tick-l">Active</div><div class="tick-v">7/8</div></div>
+    <div class="tick"><div class="tick-l">Alerts</div><div class="tick-v amber" id="t-alerts">3</div></div>
+    <div class="live-badge"><div class="live-dot"></div><span>LIVE</span></div>
+    <div class="clock" id="clock">—</div>
+  </div>
+</div>
+
+<!-- MAIN TABS -->
+<div class="main-tabs">
+  <div class="mtab active" onclick="showTab('overview',this)">Overview</div>
+  <div class="mtab" onclick="showTab('monitor',this)">Live Monitor</div>
+  <div class="mtab" onclick="showTab('co2',this)">CO₂ Optimizer</div>
+  <div class="mtab" onclick="showTab('harvest',this)">Harvest Predictor</div>
+  <div class="mtab" onclick="showTab('sim',this)">Simulation Lab</div>
+  <div class="mtab" onclick="showTab('carbon',this)">Carbon Ledger</div>
+  <div class="mtab" onclick="showTab('briefing',this)">AI Briefing</div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- LEFT: pond selector -->
+  <div class="lpanel">
+    <div class="lp-title">Pond Selection</div>
+    <div class="pond-list" id="pond-list"></div>
+    <hr class="lp-divider">
+    <div class="lp-metrics">
+      <div class="lp-m-title">Selected Pond</div>
+      <div class="lp-m-row"><span class="lp-m-lbl">pH</span><span class="lp-m-val" id="qm-ph">—</span></div>
+      <div class="lp-m-row"><span class="lp-m-lbl">Temperature</span><span class="lp-m-val" id="qm-temp">—</span></div>
+      <div class="lp-m-row"><span class="lp-m-lbl">CO₂ Flow</span><span class="lp-m-val" id="qm-co2">—</span></div>
+      <div class="lp-m-row"><span class="lp-m-lbl">Density</span><span class="lp-m-val" id="qm-dens">—</span></div>
+      <div class="lp-m-row"><span class="lp-m-lbl">Biomass</span><span class="lp-m-val" id="qm-bio">—</span></div>
+      <div class="lp-m-row" style="border:none"><span class="lp-m-lbl">Days to Harvest</span><span class="lp-m-val" id="qm-dth">—</span></div>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="cpanel">
+
+    <!-- OVERVIEW -->
+    <div class="tab-content active" id="tab-overview">
+      <div class="kpi-grid" id="kpi-grid"></div>
+      <div id="c3d-wrap">
+        <canvas id="c3d"></canvas>
+        <div class="c3d-badge">AlgaCem Farm · Safi, Morocco · 8 Flat-Sheet Raceways · 2.4 ha · Spirulina Platensis</div>
+        <div class="c3d-hint">Drag to rotate · Scroll to zoom · Click pond to select</div>
+        <div class="time-overlay">
+          <span class="time-lbl">🕐 Time</span>
+          <input type="range" id="time-slider" min="0" max="23.9" step="0.1" value="12" style="flex:1;">
+          <span class="time-val" id="time-display">12:00</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE MONITOR — 3D per pond -->
+    <div class="tab-content" id="tab-monitor">
+      <div class="pond-grid" id="pond-grid"></div>
+    </div>
+
+    <!-- CO2 OPTIMIZER -->
+    <div class="tab-content" id="tab-co2">
+      <div class="co2-layout">
+        <div class="co2-main">
+          <div class="section-card" style="flex-shrink:0">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+              <div><div class="card-title">AI CO₂ Distribution — Kiln → Raceways</div><div class="card-sub">Real-time allocation recommendations · Optimal per growth stage & pH</div></div>
+              <div style="text-align:right"><div style="font-size:8px;color:var(--text4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:2px;">Kiln Output</div><div class="mono bold" style="font-size:20px;color:var(--g600)">182 <span style="font-size:11px;color:var(--text3)">m³/h</span></div></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;color:var(--text4);margin-bottom:6px;padding:0 2px;"><span>POND</span><span style="flex:1;padding-left:28px;">CURRENT → RECOMMENDED FLOW</span><span>CHANGE</span><span style="width:70px;text-align:right">REC m³/h</span></div>
+            <div id="co2-rows" style="display:flex;flex-direction:column;gap:4px;"></div>
+          </div>
+          <div class="section-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+            <div class="card-title">Flow Allocation</div><div class="card-sub">Current vs AI-recommended per pond</div>
+            <div style="flex:1;position:relative;min-height:0;"><canvas id="co2-chart"></canvas></div>
+          </div>
+        </div>
+        <div class="co2-side">
+          <div class="section-card"><div class="card-title">Efficiency Summary</div><div id="co2-summary" style="margin-top:4px;"></div></div>
+          <div class="section-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+            <div class="card-title">CO₂ Absorption %</div><div class="card-sub">Per pond utilization</div>
+            <div style="flex:1;position:relative;min-height:0;"><canvas id="co2-util-chart"></canvas></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HARVEST PREDICTOR -->
+    <div class="tab-content" id="tab-harvest">
+      <div class="pred-layout">
+        <div class="pred-main">
+          <div class="section-card" style="flex-shrink:0;display:flex;justify-content:space-between;align-items:center;padding:9px 14px;">
+            <div><div class="card-title" id="pred-card-title">Growth Curve — Pond A-2</div><div class="card-sub">Logistic growth model · Historical + 14-day AI forecast · 90% confidence band</div></div>
+            <div id="pred-badges" style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;"></div>
+          </div>
+          <div class="section-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+            <div style="flex:1;position:relative;min-height:0;"><canvas id="pred-chart"></canvas></div>
+          </div>
+          <div class="section-card" style="flex-shrink:0;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div><div style="font-size:8px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">PAR Light (24h)</div><div style="position:relative;height:70px;"><canvas id="pred-par-chart"></canvas></div></div>
+            <div><div style="font-size:8px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px;">Growth Factor (24h)</div><div style="position:relative;height:70px;"><canvas id="pred-gf-chart"></canvas></div></div>
+          </div>
+        </div>
+        <div class="pred-side">
+          <div class="section-card" style="background:var(--g700);color:#fff;flex-shrink:0;">
+            <div style="font-size:8px;color:var(--g200);text-transform:uppercase;letter-spacing:.12em;margin-bottom:6px;">AI Harvest Signal</div>
+            <div style="font-size:22px;font-weight:700;" id="pred-sel-name">A-2</div>
+            <div style="font-size:10px;color:var(--g200);margin-top:2px;" id="pred-sel-stage">—</div>
+            <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--g600);font-size:10px;color:var(--g100);line-height:1.55;" id="pred-sel-signal">—</div>
+          </div>
+          <div class="section-card"><div class="card-title">Harvest Calendar</div><div id="harv-cal" style="margin-top:5px;display:flex;flex-direction:column;gap:4px;"></div></div>
+          <div class="section-card"><div class="card-title">Safi Weather Forecast</div><div id="weather-forecast" style="margin-top:4px;"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIMULATION LAB -->
+    <div class="tab-content" id="tab-sim">
+      <div class="sim-layout">
+        <div class="sim-controls">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text1);">Simulation Lab</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px;">Adjust parameters — charts update in real time per pond</div>
+          </div>
+          <div>
+            <div class="sim-section-hdr">Pond</div>
+            <select id="sim-pond-sel" onchange="simUpdate()" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--r);font-size:11px;color:var(--text1);background:var(--card);margin-top:5px;cursor:pointer;">
+              <option value="A-1">Pond A-1 — Day 3 · Linear</option>
+              <option value="A-2" selected>Pond A-2 — Day 4 · Exponential</option>
+              <option value="A-3">Pond A-3 — Day 6 · Near Peak</option>
+              <option value="A-4">Pond A-4 — Day 2 · Inoculation</option>
+              <option value="B-1">Pond B-1 — Day 4 · Exponential</option>
+              <option value="B-2">Pond B-2 — Day 7 · Peak</option>
+              <option value="B-3">Pond B-3 — Day 9 · Declining</option>
+              <option value="B-4">Pond B-4 — Day 1 · Inoculation</option>
+            </select>
+          </div>
+          <div>
+            <div class="sim-section-hdr">Environmental</div>
+            <div style="margin-top:8px;display:flex;flex-direction:column;gap:10px;">
+              <div class="ctrl-item">
+                <div class="ctrl-label-row"><span class="ctrl-lbl">🕐 Time of Day</span><span class="ctrl-val" id="s-time-v">12:00</span></div>
+                <input type="range" id="s-time" min="0" max="23.9" step="0.1" value="12" oninput="simUpdate()">
+                <div class="ctrl-sub">Drives PAR, temperature, photosynthetic pH rise</div>
+              </div>
+              <div class="ctrl-item">
+                <div class="ctrl-label-row"><span class="ctrl-lbl">🌡 Temp offset</span><span class="ctrl-val" id="s-temp-v">+0.0°C</span></div>
+                <input type="range" id="s-temp" min="-5" max="10" step="0.5" value="0" oninput="simUpdate()">
+                <div class="ctrl-sub">Ambient adjustment from 23.5°C baseline</div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="sim-section-hdr">Operational</div>
+            <div style="margin-top:8px;display:flex;flex-direction:column;gap:10px;">
+              <div class="ctrl-item">
+                <div class="ctrl-label-row"><span class="ctrl-lbl">💨 CO₂ Flow</span><span class="ctrl-val" id="s-co2-v">18 m³/h</span></div>
+                <input type="range" id="s-co2" min="4" max="32" step="0.5" value="18" oninput="simUpdate()">
+                <div class="ctrl-sub">Controls pH buffering and growth rate directly</div>
+              </div>
+              <div class="ctrl-item">
+                <div class="ctrl-label-row"><span class="ctrl-lbl">🌊 Paddlewheel RPM</span><span class="ctrl-val" id="s-rpm-v">22 RPM</span></div>
+                <input type="range" id="s-rpm" min="8" max="30" step="1" value="22" oninput="simUpdate()">
+                <div class="ctrl-sub">Mixing efficiency and CO₂ distribution</div>
+              </div>
+              <div class="ctrl-item">
+                <div class="ctrl-label-row"><span class="ctrl-lbl">☁ Cloud Cover</span><span class="ctrl-val" id="s-cloud-v">0%</span></div>
+                <input type="range" id="s-cloud" min="0" max="100" step="5" value="0" oninput="simUpdate()">
+                <div class="ctrl-sub">Reduces PAR and slows photosynthetic growth</div>
+              </div>
+            </div>
+          </div>
+          <div id="sim-risk-panel" style="background:var(--g50);border:1px solid var(--g100);border-radius:var(--r);padding:9px;font-size:10px;color:var(--text2);line-height:1.5;"></div>
+        </div>
+        <div class="sim-results">
+          <div class="sim-kpi-bar" id="sim-kpis"></div>
+          <div class="sim-charts">
+            <div class="sim-chart-card"><div class="sim-chart-title">pH Trajectory (24h)</div><div class="sim-chart-sub">Effect of CO₂ and photosynthesis</div><div class="sim-chart-wrap"><canvas id="s-ph-chart"></canvas></div></div>
+            <div class="sim-chart-card"><div class="sim-chart-title">Growth Factor (24h)</div><div class="sim-chart-sub">Combined light · temp · pH · CO₂ limitation</div><div class="sim-chart-wrap"><canvas id="s-gf-chart"></canvas></div></div>
+            <div class="sim-chart-card"><div class="sim-chart-title">Temperature & PAR</div><div class="sim-chart-sub">Daily cycle with current settings</div><div class="sim-chart-wrap"><canvas id="s-temp-chart"></canvas></div></div>
+            <div class="sim-chart-card"><div class="sim-chart-title">O₂ & CO₂ Absorption</div><div class="sim-chart-sub">Biological activity indicators</div><div class="sim-chart-wrap"><canvas id="s-o2-chart"></canvas></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CARBON LEDGER -->
+    <div class="tab-content" id="tab-carbon">
+      <div class="carbon-layout">
+        <div class="carbon-main">
+          <div class="section-card" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;flex-shrink:0;padding:10px 12px;">
+            <div><div style="font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:3px;">CO₂ Today</div><div class="mono bold" style="font-size:18px;color:var(--g600);" id="ck-today">—</div><div style="font-size:9px;color:var(--text3)">vs 110 kg target</div></div>
+            <div><div style="font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:3px;">This Month</div><div class="mono bold" style="font-size:18px;color:var(--g600);">3.24 t</div><div style="font-size:9px;color:var(--text3)">↑ vs 2.98 t target</div></div>
+            <div><div style="font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:3px;">Annual YTD</div><div class="mono bold" style="font-size:18px;color:var(--g600);">11.8 t</div><div style="font-size:9px;color:var(--text3)">47% of annual goal</div></div>
+            <div><div style="font-size:8px;text-transform:uppercase;letter-spacing:.1em;color:var(--text4);margin-bottom:3px;">Efficiency</div><div class="mono bold" style="font-size:18px;color:var(--g600);">1.84</div><div style="font-size:9px;color:var(--text3)">kg CO₂/kg biomass</div></div>
+          </div>
+          <div class="section-card" style="flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+            <div class="card-title">Daily CO₂ Capture — 30-Day History</div>
+            <div class="card-sub">Biological sequestration · vs 110 kg/day target</div>
+            <div style="flex:1;position:relative;min-height:0;"><canvas id="carbon-chart"></canvas></div>
+          </div>
+        </div>
+        <div class="carbon-side">
+          <div class="section-card">
+            <div class="card-title">Per-Pond Ledger (Today)</div>
+            <div id="carbon-table-wrap" style="margin-top:6px;overflow-x:auto;"></div>
+          </div>
+          <div class="section-card">
+            <div class="card-title">Export Reports</div>
+            <div style="font-size:10px;color:var(--text3);line-height:1.5;margin:6px 0 10px;">Auto-generated with full methodology, 30-day history, and annual projections.</div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <button onclick="exportCSV()" style="background:var(--g700);color:#fff;border:none;padding:8px 14px;border-radius:var(--r);font-size:11px;font-weight:600;cursor:pointer;">⬇ Export Full CSV Report</button>
+              <button onclick="exportHeidel()" style="background:var(--card2);color:var(--text2);border:1px solid var(--border);padding:8px 14px;border-radius:var(--r);font-size:11px;font-weight:600;cursor:pointer;">📄 Heidelberg PDF Report</button>
+            </div>
+            <div style="margin-top:10px;padding:8px;background:var(--g50);border-radius:var(--r);font-size:9px;color:var(--text3);line-height:1.5;">CSV includes: per-pond ledger · 30-day history · annualized projections · methodology & verification notes (ISO 14064-1:2018)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI BRIEFING -->
+    <div class="tab-content" id="tab-briefing">
+      <div style="flex:1;overflow-y:auto;padding:12px;" id="briefing-content">
+        <div style="margin-bottom:14px;"><div style="font-size:13px;font-weight:700;color:var(--text1);">AI Daily Briefing</div><div style="font-size:10px;color:var(--text3);margin-top:2px;">Generated at <span id="brief-time">—</span></div></div>
+        <div id="brief-actions"></div>
+        <div id="brief-harvest-section"></div>
+        <div id="brief-co2-section"></div>
+        <div id="brief-forecast-section"></div>
+      </div>
+    </div>
+
+  </div><!-- end cpanel -->
+
+  <!-- RIGHT PANEL -->
+  <div class="rpanel">
+    <div class="rp-hdr">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div class="rp-pond-name" id="rp-name">A-2</div>
+        <div class="status-pill healthy" id="rp-status">Healthy</div>
+      </div>
+      <div class="rp-pond-stage" id="rp-stage">—</div>
+    </div>
+    <div class="rp-tabs">
+      <div class="rp-tab active" onclick="rpTab('params',this)">Parameters</div>
+      <div class="rp-tab" onclick="rpTab('alerts',this)">Alerts</div>
+      <div class="rp-tab" onclick="rpTab('recs',this)">Actions</div>
+    </div>
+
+    <!-- PARAMS -->
+    <div class="rp-tab-content active scroll" id="rpt-params">
+      <div class="rp-sect">
+        <div class="rp-sect-title">Live Sensor Data</div>
+        <div class="param-grid" id="param-grid"></div>
+      </div>
+      <div class="signal-box" id="signal-box">
+        <div class="signal-box-title">AI Harvest Signal</div>
+        <div class="signal-box-txt" id="signal-txt">—</div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="rp-tab-content" id="rpt-alerts">
+      <div class="alert-list" id="alert-list"></div>
+    </div>
+
+    <!-- ACTIONS / RECOMMENDATIONS -->
+    <div class="rp-tab-content scroll" id="rpt-recs">
+      <div style="padding:10px 12px;" id="recs-content">
+        <div style="font-size:9px;font-weight:600;color:var(--text4);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;">AI Recommendations — <span id="recs-pond-name">—</span></div>
+        <div id="recs-list"></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end layout -->
+
+<script>
+// ════════════════════════════════════
+// STATE
+// ════════════════════════════════════
+let pondsData = [];
+let selectedPond = null;
+let currentHour = 12;
+const CHARTS = {};
+let miniRenderers = {};
+
+// ════════════════════════════════════
+// CLOCK
+// ════════════════════════════════════
+function clockTick(){
+  const d=new Date();
+  document.getElementById('clock').textContent=d.toLocaleDateString('fr-MA')+' '+d.toLocaleTimeString('fr-MA');
+}
+setInterval(clockTick,1000); clockTick();
+
+// ════════════════════════════════════
+// CHART HELPERS
+// ════════════════════════════════════
+const CD = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{
+    legend:{labels:{color:'#6b7280',font:{family:'Inter',size:10},boxWidth:10,padding:8}},
+    tooltip:{backgroundColor:'#1f2937',titleColor:'#f9fafb',bodyColor:'#d1d5db',
+      titleFont:{family:'JetBrains Mono',size:11},bodyFont:{family:'JetBrains Mono',size:10},
+      cornerRadius:6,padding:7}
+  },
+  scales:{
+    x:{grid:{color:'#f3f4f6'},ticks:{color:'#9ca3af',font:{family:'JetBrains Mono',size:9}}},
+    y:{grid:{color:'#f3f4f6'},ticks:{color:'#6b7280',font:{family:'JetBrains Mono',size:9}}}
+  }
+};
+function makeChart(id,config){
+  const c=document.getElementById(id); if(!c)return null;
+  if(CHARTS[id]){CHARTS[id].destroy();}
+  const ch=new Chart(c,config); CHARTS[id]=ch; return ch;
+}
+
+// ════════════════════════════════════
+// THREE.JS — MAIN FARM (realistic flat-sheet ponds like CIMAR photo)
+// ════════════════════════════════════
+let scene,camera,renderer3d,sunLight,hemiLight,pondGroups3d=[],waterMeshes3d=[],pwGroups=[];
+let drag={active:false,lastX:0,lastY:0};
+let orbit={theta:0.4,phi:0.72,r:20};
+
+function densityColor(density,status){
+  if(status==='critical') return new THREE.Color(0x7a5c3a);
+  const t=Math.min(1,density/2.1);
+  // light blue-green (low density) → deep blue-green (high density)
+  const r=Math.round(0x1a+t*0x0a); const g=Math.round(0x5c+t*0x4a); const b=Math.round(0x3a+t*0x20);
+  return new THREE.Color(r/255,g/255,b/255);
+}
+
+function buildFlatSheetPond(cfg){
+  const g=new THREE.Group();
+  const LEN=7.0, WID=2.6, DEPTH=0.22, WALL=0.14;
+
+  // ── concrete/white plastic liner frame ──
+  const linerMat=new THREE.MeshPhongMaterial({color:0xe8ece6,shininess:5});
+  // floor
+  const floor=new THREE.Mesh(new THREE.BoxGeometry(LEN,0.04,WID),linerMat);
+  floor.position.y=0.02; floor.receiveShadow=true; g.add(floor);
+  // walls (4)
+  [[LEN+WALL*2,0.30,WALL,0,0.15,WID/2+WALL/2],
+   [LEN+WALL*2,0.30,WALL,0,0.15,-WID/2-WALL/2],
+   [WALL,0.30,WID,LEN/2+WALL/2,0.15,0],
+   [WALL,0.30,WID,-LEN/2-WALL/2,0.15,0]
+  ].forEach(([w,h,d,x,y,z])=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),linerMat);
+    m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true; g.add(m);
+  });
+
+  // ── central divider (baffle wall) ──
+  const bafMat=new THREE.MeshPhongMaterial({color:0xd4d8d0});
+  const baffle=new THREE.Mesh(new THREE.BoxGeometry(LEN*0.80,0.26,0.12),bafMat);
+  baffle.position.set(LEN*0.05,0.13,0); g.add(baffle);
+
+  // ── water/algae surface ──
+  const waterColor=densityColor(cfg.density||0.5,cfg.status||'healthy');
+  const chanW=(WID-0.12)/2-0.04;
+  [0.5*chanW+0.07,-0.5*chanW-0.07].forEach(zOff=>{
+    const wg=new THREE.PlaneGeometry(LEN-0.12,chanW,24,12);
+    const wm=new THREE.MeshPhongMaterial({color:waterColor,specular:0x88ddcc,shininess:80,transparent:true,opacity:0.92});
+    const w=new THREE.Mesh(wg,wm);
+    w.rotation.x=-Math.PI/2; w.position.set(0,DEPTH,zOff);
+    g.add(w); g.userData.waterMeshes=(g.userData.waterMeshes||[]).concat(w);
+    g.userData.waterMats=(g.userData.waterMats||[]).concat(wm);
+  });
+
+  // ── shade netting (semi-transparent mesh above) ──
+  const netMat=new THREE.MeshBasicMaterial({color:0x444444,transparent:true,opacity:0.15,side:THREE.DoubleSide,wireframe:true});
+  const net=new THREE.Mesh(new THREE.PlaneGeometry(LEN+0.4,WID+0.4,20,8),netMat);
+  net.rotation.x=-Math.PI/2; net.position.y=0.85; g.add(net);
+
+  // ── wooden support posts for shade netting ──
+  const postMat=new THREE.MeshLambertMaterial({color:0x8b6347});
+  [[-LEN/2+0.3,0],[0,0],[LEN/2-0.3,0]].forEach(([px,pz])=>{
+    [WID/2+0.2,-WID/2-0.2].forEach(pzOff=>{
+      const post=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.05,1.1,6),postMat);
+      post.position.set(px,0.55,pzOff+pz); post.castShadow=true; g.add(post);
+    });
+  });
+  // horizontal net support beams
+  const beamMat=new THREE.MeshLambertMaterial({color:0x8b6347});
+  const beam=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.025,WID+0.5,6),beamMat);
+  beam.rotation.x=Math.PI/2; beam.position.set(0,0.86,0); g.add(beam);
+
+  // ── paddlewheel at one end ──
+  const pwG=new THREE.Group();
+  const axle=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,WID*0.42,8),new THREE.MeshPhongMaterial({color:0x5a7a5a,metalness:0.4}));
+  axle.rotation.z=Math.PI/2; pwG.add(axle);
+  for(let i=0;i<8;i++){
+    const ang=(i/8)*Math.PI*2;
+    const blade=new THREE.Mesh(new THREE.BoxGeometry(WID*0.40,0.03,0.14),new THREE.MeshPhongMaterial({color:0x4a6a4a}));
+    blade.position.set(0,Math.sin(ang)*0.20,Math.cos(ang)*0.20);
+    blade.rotation.set(ang,0,0); pwG.add(blade);
+  }
+  pwG.position.set(-LEN/2+0.35,DEPTH+0.05,0);
+  g.add(pwG); pwGroups.push(pwG);
+
+  // ── CO2 injection pipe ──
+  const pipeMat=new THREE.MeshPhongMaterial({color:0x888888,metalness:0.6});
+  const vPipe=new THREE.Mesh(new THREE.CylinderGeometry(0.022,0.022,0.5,6),pipeMat);
+  vPipe.position.set(LEN/2-0.5,0.46,WID/3); g.add(vPipe);
+  const hPipe=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,WID*0.5,6),pipeMat);
+  hPipe.rotation.x=Math.PI/2; hPipe.position.set(LEN/2-0.5,0.24,0); g.add(hPipe);
+  // small nozzles
+  for(let ni=-1;ni<=1;ni++){
+    const noz=new THREE.Mesh(new THREE.SphereGeometry(0.03,6,6),pipeMat);
+    noz.position.set(LEN/2-0.5,0.22,ni*WID/4); g.add(noz);
+  }
+
+  // ── sensor probe ──
+  const probeMat=new THREE.MeshPhongMaterial({color:0x506050,metalness:0.5});
+  const probe=new THREE.Mesh(new THREE.CylinderGeometry(0.018,0.018,0.38,6),probeMat);
+  probe.position.set(LEN/2-1.2,DEPTH+0.19,WID/2-0.3); g.add(probe);
+
+  // ── status LED ──
+  const statusColors={'healthy':0x22c55e,'warning':0xf59e0b,'critical':0xef4444};
+  const ledMat=new THREE.MeshBasicMaterial({color:statusColors[cfg.status]||0x22c55e});
+  const led=new THREE.Mesh(new THREE.SphereGeometry(0.04,6,6),ledMat);
+  led.position.set(LEN/2-1.2,DEPTH+0.42,WID/2-0.3); g.add(led);
+  g.userData.ledMat=ledMat;
+
+  // ── cylindrical photobioreactor (on one end, like CIMAR photo) ──
+  if(cfg.hasPBR){
+    const pbrMat=new THREE.MeshPhongMaterial({color:0x1a5c2a,transparent:true,opacity:0.88,specular:0x44cc88,shininess:120});
+    const pbr=new THREE.Mesh(new THREE.CylinderGeometry(0.18,0.18,1.2,16),pbrMat);
+    pbr.position.set(LEN/2+0.3,0.6,0); g.add(pbr);
+    // liquid inside
+    const liqMat=new THREE.MeshBasicMaterial({color:0x0a4a1a,transparent:true,opacity:0.9});
+    const liq=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.15,1.0,16),liqMat);
+    liq.position.set(LEN/2+0.3,0.5,0); g.add(liq);
+  }
+
+  g.position.set(cfg.x||0,0,cfg.z||0);
+  g.userData.id=cfg.id;
+  return g;
+}
+
+function init3D(){
+  const wrap=document.getElementById('c3d-wrap');
+  const canvas=document.getElementById('c3d');
+  renderer3d=new THREE.WebGLRenderer({canvas,antialias:true});
+  renderer3d.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  renderer3d.shadowMap.enabled=true;
+  renderer3d.shadowMap.type=THREE.PCFSoftShadowMap;
+  scene=new THREE.Scene();
+  scene.fog=new THREE.Fog(0xe8f0ea,25,60);
+  camera=new THREE.PerspectiveCamera(40,1,0.1,100);
+  camera.position.set(0,14,18);
+
+  hemiLight=new THREE.HemisphereLight(0x87ceeb,0x4a7c59,0.9); scene.add(hemiLight);
+  sunLight=new THREE.DirectionalLight(0xfff8e7,1.2);
+  sunLight.position.set(8,14,5); sunLight.castShadow=true;
+  sunLight.shadow.mapSize.width=1024; sunLight.shadow.mapSize.height=1024;
+  scene.add(sunLight);
+
+  // Sandy/ochre ground like Safi
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(50,50),new THREE.MeshLambertMaterial({color:0xc8b89a}));
+  ground.rotation.x=-Math.PI/2; ground.position.y=-0.03; ground.receiveShadow=true; scene.add(ground);
+
+  // Gravel paths
+  const pathMat=new THREE.MeshLambertMaterial({color:0xd4cdb8});
+  for(let i=-1;i<=2;i++){
+    const path=new THREE.Mesh(new THREE.PlaneGeometry(50,0.8),pathMat);
+    path.rotation.x=-Math.PI/2; path.position.set(0,0.01,i*6.2-9.3); scene.add(path);
+  }
+
+  // Build 8 ponds in 2 rows × 4 cols
+  const layout=[
+    {id:'A-1',col:0,row:0},{id:'A-2',col:1,row:0},{id:'A-3',col:2,row:0},{id:'A-4',col:3,row:0},
+    {id:'B-1',col:0,row:1},{id:'B-2',col:1,row:1},{id:'B-3',col:2,row:1},{id:'B-4',col:3,row:1},
+  ];
+  pondGroups3d=[]; waterMeshes3d=[];
+  layout.forEach((lc,i)=>{
+    const pd=pondsData.find(p=>p.id===lc.id)||{density:0.5,status:'healthy'};
+    const x=(lc.col-1.5)*8.4; const z=(lc.row-0.5)*6.2;
+    const grp=buildFlatSheetPond({...pd,x,z,hasPBR:lc.col===3});
+    scene.add(grp);
+    pondGroups3d.push(grp);
+    if(grp.userData.waterMeshes) waterMeshes3d.push(...grp.userData.waterMeshes);
+  });
+
+  // Sprites with pond IDs
+  layout.forEach((lc)=>{
+    const x=(lc.col-1.5)*8.4, z=(lc.row-0.5)*6.2;
+    const c2=document.createElement('canvas'); c2.width=128; c2.height=48;
+    const ctx=c2.getContext('2d');
+    ctx.fillStyle='rgba(255,255,255,.88)'; ctx.roundRect(4,4,120,40,7); ctx.fill();
+    ctx.fillStyle='#1a4a24'; ctx.font='bold 20px Inter,sans-serif'; ctx.textAlign='center';
+    ctx.fillText(lc.id,64,29);
+    const tex=new THREE.CanvasTexture(c2);
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex}));
+    sp.position.set(x,1.4,z); sp.scale.set(1.6,0.6,1); scene.add(sp);
+  });
+
+  // Raycaster click
+  const ray=new THREE.Raycaster(); const mouse2=new THREE.Vector2();
+  const canvas3=document.getElementById('c3d');
+  canvas3.addEventListener('click',e=>{
+    if(Math.abs(e.movementX)+Math.abs(e.movementY)>3)return;
+    const r=canvas3.getBoundingClientRect();
+    mouse2.x=((e.clientX-r.left)/r.width)*2-1;
+    mouse2.y=-((e.clientY-r.top)/r.height)*2+1;
+    ray.setFromCamera(mouse2,camera);
+    const hits=ray.intersectObjects(waterMeshes3d,false);
+    if(hits.length>0){
+      pondGroups3d.forEach(pg=>{
+        if(pg.userData.waterMeshes&&pg.userData.waterMeshes.some(m=>m===hits[0].object)){
+          const pd=pondsData.find(p=>p.id===pg.userData.id);
+          if(pd)selectPond(pd);
+        }
+      });
+    }
+  });
+
+  canvas3.addEventListener('mousedown',e=>{drag.active=true;drag.lastX=e.clientX;drag.lastY=e.clientY;});
+  window.addEventListener('mouseup',()=>drag.active=false);
+  canvas3.addEventListener('mousemove',e=>{
+    if(!drag.active)return;
+    orbit.theta-=(e.clientX-drag.lastX)*0.005;
+    orbit.phi=Math.max(0.15,Math.min(1.3,orbit.phi-(e.clientY-drag.lastY)*0.005));
+    drag.lastX=e.clientX; drag.lastY=e.clientY;
+  });
+  canvas3.addEventListener('wheel',e=>{orbit.r=Math.max(8,Math.min(30,orbit.r+e.deltaY*0.02));},{passive:true});
+
+  resize3D(); window.addEventListener('resize',resize3D); animate3D();
+}
+
+function resize3D(){
+  const wrap=document.getElementById('c3d-wrap'); if(!wrap)return;
+  const w=wrap.clientWidth,h=wrap.clientHeight; if(w<1||h<1)return;
+  renderer3d.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix();
+}
+
+let animT=0;
+function animate3D(){
+  requestAnimationFrame(animate3D); animT+=0.016;
+  camera.position.x=orbit.r*Math.sin(orbit.phi)*Math.sin(orbit.theta);
+  camera.position.y=orbit.r*Math.cos(orbit.phi);
+  camera.position.z=orbit.r*Math.sin(orbit.phi)*Math.cos(orbit.theta);
+  camera.lookAt(0,0.4,0);
+  // Animate water
+  waterMeshes3d.forEach((wm,i)=>{
+    if(!wm.geometry.attributes.position)return;
+    const pos=wm.geometry.attributes.position;
+    for(let j=0;j<pos.count;j++){
+      const x=pos.getX(j),z=pos.getZ(j);
+      pos.setY(j,Math.sin(x*2.2+animT*1.6+i*.8)*.006+Math.sin(z*3.1+animT*2.1+i*.5)*.004);
+    }
+    pos.needsUpdate=true;
+  });
+  // Spin paddlewheels
+  pwGroups.forEach(pw=>{pw.rotation.x+=0.022;});
+  // Blink critical LEDs
+  pondGroups3d.forEach(pg=>{
+    const pd=pondsData.find(p=>p.id===pg.userData.id);
+    if(pd&&pd.status==='critical'&&pg.userData.ledMat){
+      const t=(Math.sin(animT*5)+1)/2;
+      pg.userData.ledMat.color.setHex(t>0.5?0xef4444:0x7f1d1d);
+    }
+  });
+  renderer3d.render(scene,camera);
+}
+
+function updateSkyLighting(hour){
+  const keys=[
+    {h:0, sky:0x0a0a2a,gnd:0x0a0a0a,si:0.0,ai:0.05},
+    {h:5, sky:0x1a1040,gnd:0x100808,si:0.0,ai:0.08},
+    {h:6, sky:0xff7a30,gnd:0x553322,si:0.25,ai:0.3},
+    {h:7, sky:0xffaa55,gnd:0x887755,si:0.6,ai:0.5},
+    {h:8, sky:0x88bbdd,gnd:0x77aa66,si:0.9,ai:0.7},
+    {h:10,sky:0x87ceeb,gnd:0x88cc77,si:1.1,ai:0.85},
+    {h:13,sky:0x6ab8e8,gnd:0x99dd88,si:1.3,ai:1.0},
+    {h:17,sky:0x87ceeb,gnd:0x88cc77,si:1.0,ai:0.85},
+    {h:18,sky:0xff8833,gnd:0x884433,si:0.6,ai:0.5},
+    {h:19,sky:0xff4400,gnd:0x441100,si:0.2,ai:0.25},
+    {h:20,sky:0x221133,gnd:0x0a0500,si:0.0,ai:0.1},
+    {h:24,sky:0x0a0a2a,gnd:0x0a0a0a,si:0.0,ai:0.05},
+  ];
+  let a=keys[0],b=keys[keys.length-1];
+  for(let i=0;i<keys.length-1;i++){if(hour>=keys[i].h&&hour<keys[i+1].h){a=keys[i];b=keys[i+1];break;}}
+  const t=(hour-a.h)/Math.max(0.001,b.h-a.h);
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  function lerpC(ca,cb,t){
+    const r1=(ca>>16)&0xff,g1=(ca>>8)&0xff,b1=ca&0xff;
+    const r2=(cb>>16)&0xff,g2=(cb>>8)&0xff,b2=cb&0xff;
+    return(Math.round(lerp(r1,r2,t))<<16)|(Math.round(lerp(g1,g2,t))<<8)|Math.round(lerp(b1,b2,t));
+  }
+  const sky=lerpC(a.sky,b.sky,t),gnd=lerpC(a.gnd,b.gnd,t);
+  hemiLight.color.setHex(sky); hemiLight.groundColor.setHex(gnd);
+  hemiLight.intensity=lerp(a.ai,b.ai,t);
+  renderer3d.setClearColor(sky,1); scene.fog.color.setHex(sky);
+  sunLight.intensity=lerp(a.si,b.si,t);
+  if(hour>=6&&hour<=20){
+    const ang=((hour-6)/14)*Math.PI;
+    sunLight.position.set(Math.cos(ang)*14,Math.max(0.1,Math.sin(ang)*16),5);
+  }
+  // Update water colors based on density & lighting
+  pondGroups3d.forEach((pg,i)=>{
+    const pd=pondsData.find(p=>p.id===pg.userData.id);
+    if(!pd||!pg.userData.waterMats)return;
+    const wc=densityColor(pd.density,pd.status);
+    const sunFactor=lerp(a.si,b.si,t);
+    pg.userData.waterMats.forEach(wm=>{
+      wm.color.set(wc);
+      wm.shininess=sunFactor*100;
+      wm.opacity=0.78+pd.density*0.08;
+    });
+    if(pg.userData.ledMat&&pd.status!=='critical'){
+      const sc={'healthy':0x22c55e,'warning':0xf59e0b,'critical':0xef4444};
+      pg.userData.ledMat.color.setHex(sc[pd.status]);
+    }
+  });
+}
+
+// ════════════════════════════════════
+// MINI 3D — per pond in live monitor
+// ════════════════════════════════════
+const miniScenes={};
+function buildMini3D(canvasId, pondData){
+  const canvas=document.getElementById(canvasId); if(!canvas)return;
+  if(miniScenes[canvasId]){
+    miniScenes[canvasId].renderer.dispose();
+  }
+  const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+  const w=canvas.parentElement.clientWidth||140,h=canvas.parentElement.clientHeight||110;
+  renderer.setSize(w,h);
+  const sc=new THREE.Scene();
+  const cam=new THREE.PerspectiveCamera(45,w/h,0.1,30);
+  cam.position.set(0,3.5,5); cam.lookAt(0,0,0);
+  sc.add(new THREE.AmbientLight(0xffffff,0.7));
+  const dl=new THREE.DirectionalLight(0xfff8e7,0.9);
+  dl.position.set(3,5,4); sc.add(dl);
+  sc.add(new THREE.HemisphereLight(0x87ceeb,0x558844,0.5));
+  // Simplified pond
+  const linerMat=new THREE.MeshPhongMaterial({color:0xe8ece6});
+  const floor=new THREE.Mesh(new THREE.BoxGeometry(4,0.05,1.6),linerMat);
+  floor.position.y=0; sc.add(floor);
+  [[4.3,0.2,0.14,0,0.1,0.87],[4.3,0.2,0.14,0,0.1,-0.87],
+   [0.14,0.2,1.6,2.12,0.1,0],[0.14,0.2,1.6,-2.12,0.1,0]
+  ].forEach(([w2,h2,d2,x,y,z])=>{
+    const wall=new THREE.Mesh(new THREE.BoxGeometry(w2,h2,d2),linerMat);
+    wall.position.set(x,y,z); sc.add(wall);
+  });
+  const wc=densityColor(pondData.density,pondData.status);
+  const wm=new THREE.MeshPhongMaterial({color:wc,specular:0x88ddcc,shininess:80,transparent:true,opacity:0.90});
+  const water=new THREE.Mesh(new THREE.PlaneGeometry(3.8,1.35,16,8),wm);
+  water.rotation.x=-Math.PI/2; water.position.y=0.13; sc.add(water);
+  // Shade net
+  const netMat=new THREE.MeshBasicMaterial({color:0x444444,transparent:true,opacity:0.12,wireframe:true});
+  const net=new THREE.Mesh(new THREE.PlaneGeometry(4.4,1.8,12,5),netMat);
+  net.rotation.x=-Math.PI/2; net.position.y=0.6; sc.add(net);
+  // Post
+  const postMat=new THREE.MeshLambertMaterial({color:0x8b6347});
+  const post=new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.05,0.7,6),postMat);
+  post.position.set(0,0.35,0.9); sc.add(post);
+  // Paddlewheel
+  const pwG=new THREE.Group();
+  const axle=new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,1.2,8),new THREE.MeshPhongMaterial({color:0x5a7a5a}));
+  axle.rotation.z=Math.PI/2; pwG.add(axle);
+  for(let i=0;i<6;i++){
+    const ang=(i/6)*Math.PI*2;
+    const bl=new THREE.Mesh(new THREE.BoxGeometry(1.15,0.025,0.1),new THREE.MeshPhongMaterial({color:0x4a6a4a}));
+    bl.position.set(0,Math.sin(ang)*0.16,Math.cos(ang)*0.16); bl.rotation.set(ang,0,0); pwG.add(bl);
+  }
+  pwG.position.set(-1.9,0.13,0); sc.add(pwG);
+  // Animate
+  let anim=0;
+  let animId;
+  function animate(){
+    animId=requestAnimationFrame(animate); anim+=0.02;
+    // Water ripple
+    const pos=water.geometry.attributes.position;
+    for(let j=0;j<pos.count;j++){
+      const x=pos.getX(j),z=pos.getZ(j);
+      pos.setY(j,Math.sin(x*2.5+anim*1.8)*.005+Math.sin(z*3.5+anim*2.2)*.004);
+    }
+    pos.needsUpdate=true;
+    pwG.rotation.x+=0.025;
+    renderer.render(sc,cam);
+  }
+  animate();
+  miniScenes[canvasId]={renderer,animId,sc,cam};
+}
+
+// ════════════════════════════════════
+// API
+// ════════════════════════════════════
+async function fetchPonds(hour){
+  const url=hour!==undefined?`/api/ponds?hour=${hour}`:'/api/ponds';
+  return (await fetch(url)).json();
+}
+async function fetchSimulate(pond,co2,toff,rpm){
+  return (await fetch(`/api/simulate?pond=${pond}&co2=${co2}&toff=${toff}&rpm=${rpm}`)).json();
+}
+async function fetchPredict(id){
+  return (await fetch(`/api/predict/${id}`)).json();
+}
+async function fetchCo2(hour){
+  return (await fetch(`/api/co2_optimize?hour=${hour}`)).json();
+}
+async function fetchCarbon(hour){
+  return (await fetch(`/api/carbon?hour=${hour}`)).json();
+}
+async function fetchAlerts(hour){
+  return (await fetch(`/api/alerts?hour=${hour}`)).json();
+}
+
+// ════════════════════════════════════
+// UI BUILDERS
+// ════════════════════════════════════
+function sc(s){return s==='healthy'?'#16a34a':s==='warning'?'#d97706':'#dc2626';}
+
+function buildPondList(ponds){
+  const el=document.getElementById('pond-list'); el.innerHTML='';
+  ponds.forEach(p=>{
+    const d=document.createElement('div');
+    d.className='pond-btn'+(selectedPond&&selectedPond.id===p.id?' sel':'');
+    d.id='pbtn-'+p.id.replace('-','');
+    d.innerHTML=`<div class="pond-status-dot" style="background:${sc(p.status)}"></div>
+      <div><div class="pond-btn-name">${p.id}</div><div class="pond-btn-stage">${p.stage} · Day ${p.day}</div></div>
+      <div class="pond-btn-detail">${p.ph.toFixed(2)}</div>`;
+    d.onclick=()=>selectPond(p);
+    el.appendChild(d);
+  });
+}
+
+function buildKPIs(ponds){
+  const totalBio=ponds.reduce((a,p)=>a+p.biomass_kg,0).toFixed(0);
+  const totalCO2=ponds.reduce((a,p)=>a+p.co2_captured_kg,0).toFixed(1);
+  const avgPH=(ponds.reduce((a,p)=>a+p.ph,0)/ponds.length).toFixed(2);
+  const avgDens=(ponds.reduce((a,p)=>a+p.density,0)/ponds.length).toFixed(2);
+  document.getElementById('kpi-grid').innerHTML=[
+    {lbl:'Total Biomass',val:totalBio,unit:'kg',ch:'↑ +12% vs last week',dir:'up'},
+    {lbl:'CO₂ Captured Today',val:totalCO2,unit:'kg',ch:`vs 110 kg target`,dir:totalCO2>=100?'up':'warn'},
+    {lbl:'Avg Density',val:avgDens,unit:'g/L',ch:'8 ponds active',dir:'up'},
+    {lbl:'Avg pH',val:avgPH,unit:'',ch:avgPH<8.2?'Optimal range':'⚠ Monitor',dir:avgPH<8.2?'up':'warn'},
+  ].map(k=>`<div class="kpi-card"><div class="kpi-lbl">${k.lbl}</div>
+    <div class="kpi-val">${k.val}<span class="kpi-unit"> ${k.unit}</span></div>
+    <div class="kpi-change ${k.dir}">${k.dir==='up'?'↑':k.dir==='dn'?'↓':'⚠'} ${k.ch}</div>
+  </div>`).join('');
+  document.getElementById('t-biomass').textContent=totalBio+' kg';
+  document.getElementById('t-co2').textContent=totalCO2+' kg';
+  document.getElementById('t-ph').textContent=avgPH;
+}
+
+// Live Monitor: 3D card per pond
+function buildMonitorGrid(ponds){
+  const el=document.getElementById('pond-grid');
+  el.innerHTML=ponds.map(p=>{
+    const cid='mini3d-'+p.id.replace('-','');
+    return `<div class="pm-card${selectedPond&&selectedPond.id===p.id?' sel':''}" 
+            id="pmcard-${p.id.replace('-','')}"
+            onclick="selectPond(pondsData.find(x=>x.id==='${p.id}'))">
+      <div class="pm-3d-canvas-wrap">
+        <canvas id="${cid}" style="width:100%;height:100%;display:block;"></canvas>
+      </div>
+      <div class="pm-3d-info">
+        <div><div class="pm-3d-name">${p.id}</div>
+          <div style="font-size:8px;color:var(--text4);font-family:'JetBrains Mono',monospace;">Day ${p.day} · ${p.stage}</div></div>
+        <div><div class="status-pill ${p.status}">${p.status}</div>
+          <div style="font-size:9px;color:var(--text3);text-align:right;margin-top:2px;">pH ${p.ph.toFixed(2)} · ${p.density.toFixed(2)}g/L</div></div>
+      </div>
+    </div>`;
+  }).join('');
+  // Build mini 3D for each pond after DOM
+  setTimeout(()=>{
+    ponds.forEach(p=>{
+      const cid='mini3d-'+p.id.replace('-','');
+      buildMini3D(cid,p);
+    });
+  },80);
+}
+
+async function buildCO2(ponds){
+  const data=await fetchCo2(currentHour);
+  document.getElementById('co2-rows').innerHTML=data.ponds.map(r=>{
+    const pc=Math.min(100,r.current/28*100);
+    const pr=Math.min(100,r.recommended/28*100);
+    const cls=r.change_pct>2?'up':r.change_pct<-2?'dn':'st';
+    const chg=r.change_pct>2?`+${r.change_pct.toFixed(0)}%`:r.change_pct<-2?`${r.change_pct.toFixed(0)}%`:'→ OK';
+    return `<div class="co2-row" onclick="selectPond(pondsData.find(p=>p.id==='${r.id}'))">
+      <div class="co2-row-name">${r.id}</div>
+      <div class="co2-row-sdot" style="background:${sc(r.status)}"></div>
+      <div class="co2-track-wrap">
+        <div class="co2-track"><div class="co2-track-fill" style="width:${pc.toFixed(0)}%;background:#93c4a0"></div></div>
+        <div class="co2-track"><div class="co2-track-fill" style="width:${pr.toFixed(0)}%;background:#2d7a40"></div></div>
+        <div class="co2-track-lbls"><span style="color:#9ca3af">Cur: ${r.current.toFixed(1)}</span><span style="color:#2d7a40">Rec: ${r.recommended.toFixed(1)}</span></div>
+      </div>
+      <div class="co2-chg ${cls}">${chg}</div>
+      <div class="co2-rec">${r.recommended.toFixed(1)} m³/h</div>
+    </div>`;
+  }).join('');
+  document.getElementById('co2-summary').innerHTML=`
+    <div style="display:flex;flex-direction:column;gap:5px;">
+    ${[['Kiln output',data.kiln_output+' m³/h'],['Utilization',data.utilization+'%'],
+       ['Ponds needing increase',data.ponds.filter(p=>p.change_pct>2).length],
+       ['Est. efficiency gain','+9.2%']].map(([l,v])=>`
+    <div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:10px;color:var(--text3)">${l}</span>
+      <span class="mono bold" style="color:var(--g600)">${v}</span>
+    </div>`).join('')}</div>`;
+  makeChart('co2-chart',{type:'bar',data:{labels:data.ponds.map(r=>r.id),datasets:[
+    {label:'Current (m³/h)',data:data.ponds.map(r=>r.current),backgroundColor:'#93c4a0',borderRadius:3},
+    {label:'AI Recommended',data:data.ponds.map(r=>r.recommended),backgroundColor:'#2d7a40',borderRadius:3},
+  ]},options:{...CD}});
+  makeChart('co2-util-chart',{type:'bar',data:{labels:ponds.map(p=>p.id),datasets:[
+    {label:'CO₂ Absorption %',data:ponds.map(p=>p.absorption),borderRadius:4,
+     backgroundColor:ponds.map(p=>p.absorption<60?'#fca5a5':p.absorption<75?'#fcd34d':'#86efac')}
+  ]},options:{...CD,scales:{...CD.scales,y:{...CD.scales.y,min:0,max:100}}}});
+}
+
+async function buildPredChart(pondId){
+  const data=await fetchPredict(pondId);
+  const pd=pondsData.find(p=>p.id===pondId)||{};
+  document.getElementById('pred-card-title').textContent=`Growth Curve — Pond ${pondId}`;
+  document.getElementById('pred-sel-name').textContent=pondId;
+  document.getElementById('pred-sel-stage').textContent=`${pd.stage||'—'} · Day ${pd.day||'—'} · ${pd.species||''}`;
+  // signal from recommendations
+  const recs=pd.recommendations||[];
+  const sig=recs[0]?recs[0].issue+(recs[0].actions?'\n• '+recs[0].actions.slice(0,2).join('\n• '):''):'—';
+  document.getElementById('pred-sel-signal').textContent=sig;
+  // badges
+  const dth=pd.days_to_harvest||0;
+  const grade=pd.grade||'A';
+  document.getElementById('pred-badges').innerHTML=[
+    {l:'Peak Window',v:dth<1?'NOW':dth.toFixed(1)+' days',c:'#2d7a40'},
+    {l:'AI Confidence',v:'91%',c:'#1d4ed8'},
+    {l:'Grade',v:grade,c:grade==='A'?'#16a34a':grade==='A-'?'#d97706':'#dc2626'},
+    {l:'Est. Yield',v:pd.biomass_kg?pd.biomass_kg.toFixed(0)+' kg':'—',c:'#374151'},
+  ].map(b=>`<div style="padding:4px 9px;border-radius:5px;background:${b.c}18;border:1px solid ${b.c}40;text-align:center;">
+    <div style="font-size:7px;color:${b.c};text-transform:uppercase;letter-spacing:.08em;margin-bottom:1px;">${b.l}</div>
+    <div class="mono bold" style="font-size:12px;color:${b.c}">${b.v}</div>
+  </div>`).join('');
+  // Main chart
+  makeChart('pred-chart',{data:{labels:data.series.map(r=>r.day_label),datasets:[
+    {type:'line',label:'Historical Density',data:data.series.map(r=>r.past),borderColor:'#2d7a40',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#2d7a40',tension:.4,fill:false},
+    {type:'line',label:'AI Prediction',data:data.series.map(r=>r.predicted),borderColor:'#3d9952',borderWidth:2,borderDash:[6,4],pointRadius:2,tension:.4,fill:false},
+    {type:'line',label:'90% Upper',data:data.series.map(r=>r.upper),borderColor:'rgba(61,153,82,.2)',borderWidth:1,pointRadius:0,tension:.4,fill:'+1',backgroundColor:'rgba(61,153,82,.08)'},
+    {type:'line',label:'90% Lower',data:data.series.map(r=>r.lower),borderColor:'rgba(61,153,82,.2)',borderWidth:1,pointRadius:0,tension:.4,fill:false},
+  ]},options:{...CD,scales:{...CD.scales,y:{...CD.scales.y,title:{display:true,text:'Density (g/L)',color:'#6b7280',font:{size:9}},min:0}}}});
+  // Sub charts
+  const co2v=pd.co2_flow||18;
+  const hrs=Array.from({length:25},(_,i)=>i+':00');
+  const parV=hrs.map((_,i)=>Math.max(0,1150*Math.exp(-Math.pow((i-13)/3.8,2))));
+  const gfV=hrs.map((_,i)=>{
+    const l=parV[i],t=23.5+4.5*Math.cos((i-14.5)*Math.PI/12);
+    const ph=7.62-0.28*Math.min(1,co2v/20)+0.065*(l/100)*(pd.density||0.5);
+    const lf=Math.min(1,l/800)||0.03,tf=t<25?Math.max(0,(t-15)/10):t>35?Math.max(0,1-(t-35)*.15):1;
+    const pf=ph<7.4?Math.max(0,.6+(ph-7.4)*.4):ph>8.4?Math.max(0,1-(ph-8.4)*.4):1;
+    return +(lf*tf*pf*Math.min(1,co2v/14)).toFixed(3);
+  });
+  const mini={...CD,plugins:{legend:{display:false}},scales:{
+    x:{...CD.scales.x,ticks:{...CD.scales.x.ticks,maxTicksLimit:5}},
+    y:{...CD.scales.y}}};
+  makeChart('pred-par-chart',{type:'line',data:{labels:hrs.filter((_,i)=>i%3===0),datasets:[
+    {label:'PAR',data:parV.filter((_,i)=>i%3===0),borderColor:'#d97706',borderWidth:2,pointRadius:0,fill:true,backgroundColor:'rgba(217,119,6,.1)',tension:.4}
+  ]},options:{...mini,scales:{...mini.scales,y:{...mini.scales.y,title:{display:true,text:'PAR',color:'#9ca3af',font:{size:8}}}}}});
+  makeChart('pred-gf-chart',{type:'line',data:{labels:hrs.filter((_,i)=>i%3===0),datasets:[
+    {label:'Growth Factor',data:gfV.filter((_,i)=>i%3===0),borderColor:'#2d7a40',borderWidth:2,pointRadius:0,fill:true,backgroundColor:'rgba(45,122,64,.1)',tension:.4}
+  ]},options:{...mini,scales:{...mini.scales,y:{...mini.scales.y,min:0,max:1.05,title:{display:true,text:'GF',color:'#9ca3af',font:{size:8}}}}}});
+}
+
+async function buildHarvestPanel(ponds){
+  const calItems=[
+    {id:'B-2',urg:'critical',win:'Today 18:00–20:00',grade:'B+',yield_kg:163,col:'#dc2626'},
+    {id:'A-2',urg:'optimal',win:'Tomorrow 14:00–18:00',grade:'A',yield_kg:187,col:'#16a34a'},
+    {id:'A-3',urg:'soon',win:'Tomorrow 08:00–12:00',grade:'A-',yield_kg:201,col:'#d97706'},
+    {id:'B-1',urg:'upcoming',win:'Mar 18, 10:00–14:00',grade:'A',yield_kg:175,col:'#6b7280'},
+    {id:'A-1',urg:'upcoming',win:'Mar 19, 08:00–12:00',grade:'A',yield_kg:158,col:'#6b7280'},
+  ];
+  const urgL={critical:'URGENT',optimal:'OPTIMAL',soon:'SOON',upcoming:'SCHEDULED'};
+  document.getElementById('harv-cal').innerHTML=calItems.map(h=>`
+    <div class="harv-cal-item" onclick="selectPond(pondsData.find(p=>p.id==='${h.id}'))">
+      <div class="urgency-bar" style="background:${h.col}"></div>
+      <div style="flex:1">
+        <div class="harv-cal-name">Pond ${h.id}</div>
+        <div class="harv-cal-win">${h.win}</div>
+        <div style="display:flex;gap:6px;margin-top:3px;align-items:center;">
+          <div class="harv-cal-grade" style="background:${h.col}20;color:${h.col}">Grade ${h.grade}</div>
+          <div style="font-size:9px;color:var(--text3)">~${h.yield_kg} kg</div>
+          <div style="margin-left:auto;font-size:8px;color:${h.col};font-weight:700">${urgL[h.urg]}</div>
+        </div>
+      </div>
+    </div>`).join('');
+  const days=['Today','Tomorrow','Wed','Thu','Fri'];
+  const icons=['☀️','⛅','☀️','🌤','☀️']; const pars=[1050,820,1080,940,1100];
+  document.getElementById('weather-forecast').innerHTML=days.map((d,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:10px;color:var(--text2);font-weight:500">${d}</span>
+      <span style="font-size:13px">${icons[i]}</span>
+      <span class="mono" style="font-size:9px;color:var(--text3)">${pars[i]} µmol</span>
+      <span style="font-size:8px;color:${pars[i]>900?'#16a34a':'#d97706'};font-weight:600">${pars[i]>900?'Favorable':'Moderate'}</span>
+    </div>`).join('');
+  await buildPredChart(selectedPond?selectedPond.id:'A-2');
+}
+
+// ════════════════════════════════════
+// SIMULATION LAB (fully reactive)
+// ════════════════════════════════════
+let simDebounce=null;
+function simUpdate(){
+  const hour=parseFloat(document.getElementById('s-time').value);
+  const toff=parseFloat(document.getElementById('s-temp').value);
+  const co2=parseFloat(document.getElementById('s-co2').value);
+  const rpm=parseInt(document.getElementById('s-rpm').value);
+  const cloud=parseInt(document.getElementById('s-cloud').value);
+  const pond=document.getElementById('sim-pond-sel').value;
+  const fmtH=h=>`${Math.floor(h).toString().padStart(2,'0')}:${Math.round((h%1)*60).toString().padStart(2,'0')}`;
+  document.getElementById('s-time-v').textContent=fmtH(hour);
+  document.getElementById('s-temp-v').textContent=(toff>=0?'+':'')+toff.toFixed(1)+'°C';
+  document.getElementById('s-co2-v').textContent=co2.toFixed(1)+' m³/h';
+  document.getElementById('s-rpm-v').textContent=rpm+' RPM';
+  document.getElementById('s-cloud-v').textContent=cloud+'%';
+  if(document.getElementById('tab-overview').classList.contains('active'))
+    updateSkyLighting(hour);
+  if(simDebounce) clearTimeout(simDebounce);
+  simDebounce=setTimeout(()=>runSim(pond,co2,toff,rpm,cloud),180);
+}
+
+async function runSim(pond,co2,toff,rpm,cloud){
+  const data=await fetchSimulate(pond,co2,toff,rpm);
+  const cloudFactor=1-(cloud||0)/100;
+  const hrs=data.hours.map(h=>`${h.toString().padStart(2,'0')}:00`);
+  const pars=data.par.map(v=>+(v*cloudFactor).toFixed(0));
+  // Recompute GF with cloud-adjusted PAR
+  const gfs=data.hours.map((h,i)=>{
+    const l=pars[i],t=data.temperature[i];
+    const ph=data.ph[i];
+    const lf=l>0?Math.min(1,l/800):0.03;
+    const tf=t<25?Math.max(0,(t-15)/10):t>35?Math.max(0,1-(t-35)*.15):1;
+    const pf=ph<7.4?Math.max(0,.6+(ph-7.4)*.4):ph>8.4?Math.max(0,1-(ph-8.4)*.4):1;
+    return +(lf*tf*pf*Math.min(1,co2/14)).toFixed(4);
+  });
+  const hi=Math.round(parseFloat(document.getElementById('s-time').value));
+  const curPH=data.ph[hi],curTemp=data.temperature[hi],curGF=gfs[hi],curO2=data.o2[hi];
+  // KPI bar
+  const risks=[
+    {l:'pH Now',v:curPH.toFixed(2),ok:curPH<8.2,warn:curPH<8.5,s:curPH<8.2?'Optimal':curPH<8.5?'Monitor':'⚠ Stress'},
+    {l:'Temp Now',v:curTemp.toFixed(1)+'°C',ok:curTemp<28,warn:curTemp<32,s:curTemp<28?'Optimal':curTemp<32?'Warm':'⚠ Hot'},
+    {l:'Growth Factor',v:(curGF*100).toFixed(0)+'%',ok:curGF>0.7,warn:curGF>0.4,s:curGF>0.7?'High':curGF>0.4?'Moderate':'Low'},
+    {l:'O₂ Sat.',v:curO2.toFixed(0)+'%',ok:curO2<105,warn:curO2<112,s:curO2<105?'Normal':curO2<112?'High':'⚠ Super-sat'},
+  ];
+  document.getElementById('sim-kpis').innerHTML=risks.map(r=>{
+    const c=r.ok?'#16a34a':r.warn?'#d97706':'#dc2626';
+    const bg=r.ok?'#f0fdf4':r.warn?'#fffbeb':'#fef2f2';
+    return `<div class="sim-kpi-item" style="background:${bg};border-color:${c}22">
+      <div class="sim-kpi-lbl" style="color:${c}">${r.l}</div>
+      <div class="sim-kpi-val" style="color:${c}">${r.v}</div>
+      <div class="sim-kpi-sts" style="color:${c}">${r.s}</div>
+    </div>`;
+  }).join('');
+  // Risk panel
+  const riskMsg=curPH>8.5?`⚠ pH ${curPH.toFixed(2)} is above stress threshold. Increase CO₂ flow to at least ${(co2*1.3).toFixed(1)} m³/h.`:
+    curTemp>30?`⚠ Temperature ${curTemp.toFixed(1)}°C above optimal. Deploy shade netting and increase paddlewheel speed.`:
+    curGF<0.3?`⚠ Growth factor only ${(curGF*100).toFixed(0)}% — check CO₂ supply and light conditions.`:
+    curGF<0.5&&cloud>60?`☁ Cloud cover reducing PAR by ${cloud}% — growth factor limited to ${(curGF*100).toFixed(0)}%. Normal for overcast conditions.`:
+    `✓ All parameters optimal at this time. Pond ${pond} is performing well with these settings.`;
+  document.getElementById('sim-risk-panel').innerHTML=`<div style="font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:${curPH>8.5||curTemp>30||curGF<0.3?'#d97706':'#16a34a'};margin-bottom:3px;">Risk Assessment — Pond ${pond}</div><div>${riskMsg}</div>`;
+  // Charts
+  makeChart('s-ph-chart',{type:'line',data:{labels:hrs,datasets:[
+    {label:'pH',data:data.ph,borderColor:'#2d7a40',borderWidth:2,pointRadius:0,fill:true,backgroundColor:'rgba(45,122,64,.08)',tension:.5},
+    {label:'Max optimal (8.2)',data:hrs.map(()=>8.2),borderColor:'rgba(217,119,6,.5)',borderDash:[4,4],borderWidth:1,pointRadius:0},
+    {label:'Stress (8.5)',data:hrs.map(()=>8.5),borderColor:'rgba(220,38,38,.4)',borderDash:[3,3],borderWidth:1,pointRadius:0},
+  ]},options:{...CD,plugins:{legend:{labels:{color:'#6b7280',font:{size:9},boxWidth:8,padding:5}}},scales:{x:{...CD.scales.x,ticks:{...CD.scales.x.ticks,maxTicksLimit:8}},y:{...CD.scales.y,min:6.5,max:9.5}}}});
+  makeChart('s-gf-chart',{type:'line',data:{labels:hrs,datasets:[
+    {label:`Growth Factor — Pond ${pond} (Day ${data.day})`,data:gfs,borderColor:'#3d9952',borderWidth:2,pointRadius:0,fill:true,backgroundColor:'rgba(61,153,82,.1)',tension:.5},
+  ]},options:{...CD,plugins:{legend:{labels:{color:'#6b7280',font:{size:9},boxWidth:8,padding:5}}},scales:{x:{...CD.scales.x,ticks:{...CD.scales.x.ticks,maxTicksLimit:8}},y:{...CD.scales.y,min:0,max:1.05}}}});
+  makeChart('s-temp-chart',{data:{labels:hrs,datasets:[
+    {type:'line',label:'Temperature (°C)',data:data.temperature,borderColor:'#dc2626',borderWidth:2,pointRadius:0,tension:.5,yAxisID:'y'},
+    {type:'bar',label:'PAR (÷10)',data:pars.map(v=>v/10),backgroundColor:'rgba(217,119,6,.2)',borderColor:'rgba(217,119,6,.4)',borderWidth:1,yAxisID:'y2'},
+  ]},options:{...CD,plugins:{legend:{labels:{color:'#6b7280',font:{size:9},boxWidth:8,padding:5}}},scales:{
+    x:{...CD.scales.x,ticks:{...CD.scales.x.ticks,maxTicksLimit:8}},
+    y:{...CD.scales.y,title:{display:true,text:'Temp °C',color:'#9ca3af',font:{size:9}},position:'left'},
+    y2:{grid:{display:false},ticks:{color:'#d97706',font:{size:9}},title:{display:true,text:'PAR/10',color:'#d97706',font:{size:9}},position:'right'}}}});
+  makeChart('s-o2-chart',{data:{labels:hrs,datasets:[
+    {type:'line',label:'O₂ Saturation %',data:data.o2,borderColor:'#1d4ed8',borderWidth:2,pointRadius:0,tension:.5},
+    {type:'line',label:'CO₂ Absorption %',data:data.co2_absorption,borderColor:'#2d7a40',borderWidth:2,borderDash:[5,4],pointRadius:0,tension:.5},
+  ]},options:{...CD,plugins:{legend:{labels:{color:'#6b7280',font:{size:9},boxWidth:8,padding:5}}},scales:{x:{...CD.scales.x,ticks:{...CD.scales.x.ticks,maxTicksLimit:8}},y:{...CD.scales.y,min:0,max:120}}}});
+}
+
+async function buildCarbon(){
+  const data=await fetchCarbon(currentHour);
+  document.getElementById('ck-today').textContent=data.today.toFixed(1)+' kg';
+  makeChart('carbon-chart',{data:{labels:data.history.map(d=>d.day),datasets:[
+    {type:'bar',label:'CO₂ Captured (kg)',data:data.history.map(d=>d.captured),backgroundColor:'rgba(45,122,64,.45)',borderColor:'#2d7a40',borderWidth:1,borderRadius:3},
+    {type:'line',label:'Daily Target (110 kg)',data:data.history.map(d=>d.target),borderColor:'#d97706',borderDash:[5,4],borderWidth:1.5,pointRadius:0,tension:.4},
+  ]},options:{...CD,scales:{...CD.scales,y:{...CD.scales.y,title:{display:true,text:'kg CO₂',color:'#6b7280',font:{size:9}}}}}});
+  document.getElementById('carbon-table-wrap').innerHTML=`
+    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+      <thead><tr>${['Pond','CO₂ kg','Biomass','Abs%','Grade','Status'].map(h=>`<th style="background:var(--g700);color:#fff;padding:5px 7px;text-align:left;font-size:8px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;">${h}</th>`).join('')}</tr></thead>
+      <tbody>${data.ponds.map((r,i)=>`<tr style="${i%2?'background:var(--card2)':''}">
+        <td style="padding:5px 7px;font-weight:700">${r.id}</td>
+        <td style="padding:5px 7px;font-family:'JetBrains Mono',monospace">${r.co2_today}</td>
+        <td style="padding:5px 7px;font-family:'JetBrains Mono',monospace">${r.biomass} kg</td>
+        <td style="padding:5px 7px;font-family:'JetBrains Mono',monospace">${r.absorption}%</td>
+        <td style="padding:5px 7px;font-weight:600;color:${r.grade==='A'?'#16a34a':r.grade==='A-'?'#d97706':'#dc2626'}">${r.grade}</td>
+        <td style="padding:5px 7px"><span class="status-pill ${r.status}">${r.status}</span></td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+}
+
+async function buildBriefing(){
+  const alerts=await fetchAlerts(currentHour);
+  document.getElementById('brief-time').textContent=new Date().toLocaleTimeString('fr-MA');
+  const sectionHtml=(title,items)=>`
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">${title}</div>
+      ${items}
+    </div>`;
+  const item=(head,body,color='var(--text1)')=>`
+    <div style="padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin-bottom:5px;">
+      <div style="font-weight:600;font-size:12px;color:${color}">${head}</div>
+      <div style="font-size:10px;color:var(--text2);line-height:1.6;margin-top:2px;">${body}</div>
+    </div>`;
+  const critical=alerts.filter(a=>a.type==='critical');
+  const warnings=alerts.filter(a=>a.type==='warning');
+  const actionItems=[
+    ...critical.map(a=>item(`🚨 ${a.pond} — Critical: ${a.text}`,
+      a.recommendations&&a.recommendations[0]?a.recommendations[0].actions.join(' · '):'',' var(--red)')),
+    ...warnings.map(a=>item(`⚠ ${a.pond} — Warning: ${a.text}`,
+      a.recommendations&&a.recommendations[0]?a.recommendations[0].actions.join(' · '):'','var(--amber)')),
+    (!critical.length&&!warnings.length)?item('✓ No critical actions required','All ponds within acceptable parameters at this time.'):'',
+  ].join('');
+  document.getElementById('brief-actions').innerHTML=sectionHtml('Immediate Actions Required',actionItems);
+  document.getElementById('brief-harvest-section').innerHTML=sectionHtml('Today\'s Harvest Schedule',[
+    item('Pond B-2 — URGENT harvest today before 20:00','Peak density reached. Quality degrades after 20:00 → Grade B. Prepare centrifuge immediately. Est. yield: 163 kg.','var(--red)'),
+    item('Pond A-2 — Optimal window tomorrow 14:00–18:00','Logistic model predicts peak at 16:30. Solar forecast 85% clear. Grade A confirmed. Est. yield: 187 kg.'),
+    item('Pond A-3 — Harvest within 12–24 hours','Near-peak stage, pH rising. Consider earlier window to secure Grade A. Est. yield: 201 kg.','var(--amber)'),
+  ].join(''));
+  document.getElementById('brief-co2-section').innerHTML=sectionHtml('CO₂ Optimization',[
+    item('Reallocation recommended — 3 ponds suboptimal','B-3 requires +72% CO₂ increase (pH 8.74). B-2 should be reduced −29% as harvest is imminent. A-3 requires +22% to buffer rising pH. Net kiln utilization improves from 78% → 91%.'),
+  ].join(''));
+  document.getElementById('brief-forecast-section').innerHTML=sectionHtml('7-Day Production Forecast',[
+    item('Yield forecast: 1,054 kg (7 days)','3× Grade A harvests expected (A-1, A-2, B-1). 1× urgent Grade B (B-2 today). New inoculations A-4 and B-4 enter exponential phase ~March 18.'),
+    item('CO₂ capture forecast: 712 kg (7 days)','Annualized rate: 37.0 t CO₂/year at current trajectory. March report on track to exceed target.'),
+  ].join(''));
+}
+
+// ════════════════════════════════════
+// SELECT POND
+// ════════════════════════════════════
+async function selectPond(p){
+  if(!p)return;
+  selectedPond=p;
+  document.querySelectorAll('.pond-btn').forEach(b=>b.classList.remove('sel'));
+  const btn=document.getElementById('pbtn-'+p.id.replace('-',''));
+  if(btn)btn.classList.add('sel');
+  document.querySelectorAll('[id^="pmcard-"]').forEach(c=>c.classList.remove('sel'));
+  const mc=document.getElementById('pmcard-'+p.id.replace('-',''));
+  if(mc)mc.classList.add('sel');
+  document.getElementById('qm-ph').textContent=p.ph.toFixed(2);
+  document.getElementById('qm-temp').textContent=p.temperature.toFixed(1)+' °C';
+  document.getElementById('qm-co2').textContent=p.co2_flow.toFixed(1)+' m³/h';
+  document.getElementById('qm-dens').textContent=p.density.toFixed(2)+' g/L';
+  document.getElementById('qm-bio').textContent=p.biomass_kg+' kg';
+  document.getElementById('qm-dth').textContent=p.days_to_harvest===0?'Harvest now':p.days_to_harvest+' days';
+  document.getElementById('rp-name').textContent=p.id;
+  document.getElementById('rp-status').textContent=p.status.charAt(0).toUpperCase()+p.status.slice(1);
+  document.getElementById('rp-status').className='status-pill '+p.status;
+  document.getElementById('rp-stage').textContent=`${p.stage} · Day ${p.day} · ${p.species}`;
+  const PARAMS=[
+    {l:'pH',v:p.ph.toFixed(2),u:'',tr:p.ph>8.2?'↑ rising':p.ph<7.5?'↓ low':'→ stable',tdir:p.ph>8.2?'dn':'up',bar:(p.ph-6)/4*100,c:p.ph>8.5?'#dc2626':p.ph>8.2?'#d97706':'#16a34a'},
+    {l:'Temperature',v:p.temperature.toFixed(1),u:'°C',tr:'→ daily cycle',tdir:'st',bar:(p.temperature-15)/20*100,c:p.temperature>30?'#dc2626':'#374151'},
+    {l:'CO₂ Flow',v:p.co2_flow.toFixed(1),u:'m³/h',tr:'↑ from kiln',tdir:'up',bar:p.co2_flow/28*100,c:'#374151'},
+    {l:'Density',v:p.density.toFixed(3),u:'g/L',tr:'↑ growing',tdir:'up',bar:p.density/2.3*100,c:'#374151'},
+    {l:'O₂ Sat.',v:p.o2+'',u:'%',tr:p.o2>104?'↑ high':'→ normal',tdir:p.o2>104?'dn':'st',bar:p.o2,c:p.o2>108?'#d97706':'#374151'},
+    {l:'CO₂ Abs.',v:p.absorption+'',u:'%',tr:p.absorption>80?'↑ good':'↓ check',tdir:p.absorption>80?'up':'dn',bar:p.absorption,c:p.absorption<60?'#dc2626':'#374151'},
+    {l:'Turbidity',v:p.turbidity.toFixed(2),u:'NTU',tr:'→ normal',tdir:'st',bar:p.turbidity*60,c:'#374151'},
+    {l:'Salinity',v:p.salinity.toFixed(1),u:'g/L',tr:'→ stable',tdir:'st',bar:p.salinity/35*100,c:'#374151'},
+    {l:'PAR',v:p.par+'',u:'µmol',tr:p.par>600?'↑ peak':p.par<100?'↓ night':'→',tdir:p.par>600?'up':p.par<100?'dn':'st',bar:p.par/1200*100,c:'#374151'},
+    {l:'Paddle RPM',v:p.rpm+'',u:'rpm',tr:'→ nominal',tdir:'st',bar:p.rpm/30*100,c:'#374151'},
+  ];
+  document.getElementById('param-grid').innerHTML=PARAMS.map(pp=>`
+    <div class="param-cell">
+      <div class="param-lbl">${pp.l}</div>
+      <div><span class="param-val" style="color:${pp.c}">${pp.v}</span><span class="param-unit"> ${pp.u}</span></div>
+      <div class="param-trend ${pp.tdir}">${pp.tr}</div>
+      <div class="param-bar"><div class="param-bar-fill" style="width:${Math.min(100,pp.bar).toFixed(0)}%;background:${pp.c==='#374151'?'#2d7a40':pp.c}"></div></div>
+    </div>`).join('');
+  const sb=document.getElementById('signal-box');
+  const recs=p.recommendations||[];
+  const cls=p.status==='critical'?'crit':p.status==='warning'?'warn':'';
+  sb.className='signal-box'+(cls?' '+cls:'');
+  sb.querySelector('.signal-box-title').className='signal-box-title'+(cls?' '+cls:'');
+  const topRec=recs[0]||{};
+  document.getElementById('signal-txt').textContent=topRec.issue||'—';
+  // Alerts tab
+  await buildAlertList();
+  // Recommendations tab
+  buildRecommendations(p);
+  // Update harvest predictor if active
+  if(document.getElementById('tab-harvest').classList.contains('active')){
+    await buildPredChart(p.id);
+  }
+  // Update 3D highlight
+  pondGroups3d.forEach(pg=>{
+    if(!pg.userData.waterMats)return;
+    pg.userData.waterMats.forEach(wm=>{wm.opacity=pg.userData.id===p.id?0.98:0.88;});
+  });
+}
+
+function buildRecommendations(p){
+  document.getElementById('recs-pond-name').textContent=p.id;
+  const recs=p.recommendations||[];
+  const priorityColors={critical:'var(--red)',warning:'var(--amber)',harvest:'#7c3aed',info:'var(--g600)',ok:'var(--g600)'};
+  const priorityBg={critical:'var(--red-l)',warning:'var(--amber-l)',harvest:'#ede9fe',info:'var(--g50)',ok:'var(--g50)'};
+  document.getElementById('recs-list').innerHTML=recs.map(r=>`
+    <div style="background:${priorityBg[r.priority]||'var(--g50)'};border:1px solid ${priorityColors[r.priority]||'var(--g200)'}44;border-left:3px solid ${priorityColors[r.priority]||'var(--g500)'};border-radius:var(--r);padding:9px 11px;margin-bottom:7px;">
+      <div style="font-weight:700;font-size:11px;color:${priorityColors[r.priority]||'var(--g700)'};">${r.issue}</div>
+      <div style="font-size:9px;color:var(--text3);font-style:italic;margin:3px 0 5px;">${r.cause}</div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        ${r.actions.map(a=>`<div style="display:flex;gap:5px;font-size:10px;color:var(--text2);">
+          <span style="color:${priorityColors[r.priority]||'var(--g500)'};flex-shrink:0;">→</span>
+          <span>${a}</span>
+        </div>`).join('')}
+      </div>
+      <div style="margin-top:5px;font-size:9px;font-weight:600;color:${priorityColors[r.priority]||'var(--g600)'};">⏱ ${r.timeframe}</div>
+    </div>`).join('');
+}
+
+// ════════════════════════════════════
+// ALERTS
+// ════════════════════════════════════
+async function buildAlertList(){
+  const alerts=await fetchAlerts(currentHour);
+  document.getElementById('t-alerts').textContent=alerts.filter(a=>a.type!=='info').length;
+  document.getElementById('alert-list').innerHTML=alerts.map((a,idx)=>`
+    <div class="alert-item ${a.type}" id="alert-${idx}" onclick="toggleAlert(${idx})">
+      <div class="alert-dot" style="background:${a.type==='critical'?'var(--red)':a.type==='warning'?'var(--amber)':'var(--g300)'}"></div>
+      <div style="flex:1">
+        <div><span class="alert-pond">${a.pond}</span><span class="alert-type-badge ${a.type}">${a.type}</span></div>
+        <div class="alert-text">${a.text}</div>
+        <div class="alert-time">${a.time} · click to expand</div>
+        <div class="alert-expand" id="alert-exp-${idx}">
+          <div class="rec-cause">${a.recommendations&&a.recommendations[0]?a.recommendations[0].cause:''}</div>
+          <div class="rec-action-list">${a.recommendations&&a.recommendations[0]?a.recommendations[0].actions.map(ac=>`<div class="rec-action-item">${ac}</div>`).join(''):''}</div>
+          ${a.recommendations&&a.recommendations[0]?`<div class="rec-timeframe ${a.type}">⏱ ${a.recommendations[0].timeframe}</div>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleAlert(idx){
+  const exp=document.getElementById('alert-exp-'+idx);
+  if(exp)exp.classList.toggle('open');
+}
+
+// ════════════════════════════════════
+// EXPORTS
+// ════════════════════════════════════
+function exportCSV(){
+  window.open(`/api/carbon/export/csv?hour=${currentHour}`,'_blank');
+}
+function exportHeidel(){
+  window.open(`/api/carbon/export/heidelberg?hour=${currentHour}`,'_blank');
+}
+
+// ════════════════════════════════════
+// TAB SWITCHING
+// ════════════════════════════════════
+async function showTab(name,el){
+  document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='overview'){setTimeout(()=>{resize3D();updateSkyLighting(currentHour);},50);}
+  else if(name==='monitor'){buildMonitorGrid(pondsData);}
+  else if(name==='co2'){await buildCO2(pondsData);}
+  else if(name==='harvest'){await buildHarvestPanel(pondsData);}
+  else if(name==='sim'){simUpdate();}
+  else if(name==='carbon'){await buildCarbon();}
+  else if(name==='briefing'){await buildBriefing();}
+}
+function rpTab(name,el){
+  document.querySelectorAll('.rp-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.rp-tab-content').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('rpt-'+name).classList.add('active');
+}
+
+// TIME SLIDER
+document.getElementById('time-slider').addEventListener('input',async function(){
+  currentHour=parseFloat(this.value);
+  const h=Math.floor(currentHour),m=Math.round((currentHour%1)*60);
+  document.getElementById('time-display').textContent=`${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+  updateSkyLighting(currentHour);
+  const ponds=await fetchPonds(currentHour);
+  pondsData=ponds;
+  buildPondList(ponds); buildKPIs(ponds);
+  if(selectedPond){const upd=ponds.find(p=>p.id===selectedPond.id);if(upd)await selectPond(upd);}
+  if(document.getElementById('tab-monitor').classList.contains('active'))buildMonitorGrid(ponds);
+});
+
+// ════════════════════════════════════
+// INIT
+// ════════════════════════════════════
+async function init(){
+  pondsData=await fetchPonds(currentHour);
+  buildKPIs(pondsData);
+  buildPondList(pondsData);
+  await buildAlertList();
+  init3D();
+  updateSkyLighting(currentHour);
+  await selectPond(pondsData.find(p=>p.id==='A-2')||pondsData[0]);
+  // Live refresh every 10s
+  setInterval(async()=>{
+    const fresh=await fetchPonds(currentHour);
+    pondsData=fresh; buildKPIs(fresh); buildPondList(fresh);
+    if(selectedPond){
+      const upd=fresh.find(p=>p.id===selectedPond.id);
+      if(upd){
+        document.getElementById('qm-ph').textContent=upd.ph.toFixed(2);
+        document.getElementById('qm-temp').textContent=upd.temperature.toFixed(1)+' °C';
+      }
+    }
+  },10000);
+}
+init();
+</script>
+</body>
+</html>
